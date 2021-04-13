@@ -23,6 +23,8 @@
     <description>
         使用2.1.3.RELEASE 的springboot 时用6.4.0 (6.x) 的 es 和6.4.0的ik,无法启动
         ,报错:ES can‘t be changed from nested to non-nested , 原因是 需要用es-head删除索引重新导入
+
+        注意: 使用es 6.x ,ik也必须6.x ,版本一一对应
     </description>
     <properties>
         <java.version>1.8</java.version>
