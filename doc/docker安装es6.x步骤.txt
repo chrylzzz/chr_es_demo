@@ -44,7 +44,7 @@ docker run -p 9200:9200 -p 9300:9300 --name elasticsearch \
 
 启动时会发现/usr/share/elasticsearch/data目录没有访问权限，只需要修改/mydata/elasticsearch/data目录的权限，再重新启动。
 	chmod 777 /mydata/elasticsearch/data/
-安装中文分词器IKAnalyzer，并重新启动：
+安装中文分词器IKAnalyzer，并重新启动：----注意安装分词ik需要重新下载,直接把之前下载的目录放到plugin没有用
 	docker exec -it elasticsearch /bin/bash
 	#此命令需要在容器中运行
 	elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.4.0/elasticsearch-analysis-ik-6.4.0.zip
