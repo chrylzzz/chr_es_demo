@@ -139,21 +139,25 @@ public class ChrCompanyEmpService {
             nativeSearchQueryBuilder.withQuery(QueryBuilders.matchAllQuery());
         } else {
             /**
-             fuzzyQuery 设置模糊搜索,有学习两个字
+             fuzzyQuery 设置模糊搜索,有学习两个字,类似于包含
              builder.must(QueryBuilders.fuzzyQuery("sumary", "学习"));
+
+             wildcardQuery 模糊查询 ,类似于like查询
+             builder.must(QueryBuilders.fuzzyQuery("sumary", "学习"+"*"));
 
              设置要查询的内容中含有关键字
              builder.must(new QueryStringQueryBuilder("man").field("springdemo"));
 
              matchQuery 分词查询，--这里可以设置分词器,采用默认的分词器
 
-             wildcardQuery 模糊查询
+
              */
             //分词查询
             List<FunctionScoreQueryBuilder.FilterFunctionBuilder> filterFunctionBuilders = new ArrayList<>();
             filterFunctionBuilders.add(new FunctionScoreQueryBuilder.FilterFunctionBuilder(
 //                    QueryBuilders.matchQuery("companyName", keyword),//分词查询
-                    QueryBuilders.wildcardQuery("companyName", keyword + "*"),//全英文,不分词查询,模糊查询
+//                    QueryBuilders.wildcardQuery("companyName", keyword + "*"),//全英文,不分词查询,模糊查询,类似于like查询
+                    QueryBuilders.fuzzyQuery("companyName", keyword),//全英文,不分词查询,模糊查询,类似于包含查询
                     ScoreFunctionBuilders.weightFactorFunction(10)////设置权重
             ));
             //嵌套
