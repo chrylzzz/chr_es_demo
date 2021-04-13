@@ -26,6 +26,7 @@ Caused by: java.lang.IllegalArgumentException: object mapping [chrEmpList] can't
 3.安装 elasticsearch-head:如果跨域则,设置config下的elasticsearch.yml配置:
 http.cors.enabled: true
 http.cors.allow-origin: "*"
+
 4.下载,安装,启动 es-head:
 https://github.com/mobz/elasticsearch-head
 git clone git://github.com/mobz/elasticsearch-head.git
