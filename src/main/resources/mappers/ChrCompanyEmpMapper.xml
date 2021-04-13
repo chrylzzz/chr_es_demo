@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chryl.mapper.ChrCompanyEmpMapper">
+
+    <resultMap id="chr_company_emp_map" type="com.chryl.entity.ChrCompanyEmp" autoMapping="true">
+        <id column="company_id" jdbcType="BIGINT" property="companyId"/>
+        <result column="company_name" property="companyName" jdbcType="VARCHAR"/>
+        <result column="company_code" property="companyCode" jdbcType="INTEGER"/>
+        <result column="company_description" property="companyDescription" jdbcType="VARCHAR"/>
+        <result column="company_chinese" property="companyChinese" jdbcType="VARCHAR"/>
+
+
+        <collection property="chrEmpList" ofType="com.chryl.entity.ChrEmp">
+            <id column="emp_id" property="empId" jdbcType="BIGINT"/>
+            <result column="emp_name" property="empName" jdbcType="VARCHAR"/>
+            <result column="emp_sal" property="empSal" jdbcType="DECIMAL"/>
+            <!-- 时间存es未解决 -->
+            <!--<result column="emp_date" property="empDate" jdbcType="DATE"/>-->
+            <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+            <result column="emp_idcard" property="empIdcard" jdbcType="BIGINT"/>
+            <result column="emp_code" property="empCode" jdbcType="INTEGER"/>
+            <result column="emp_str_date" property="empStrDate" jdbcType="VARCHAR"/>
+            <result column="emp_real_name" property="empRealName" jdbcType="VARCHAR"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectCompanyEmpAll" resultMap="chr_company_emp_map">
+        SELECT  * FROM  chr_company c LEFT JOIN chr_emp e on c.company_id = e.company_id
+    </select>
+
+</mapper>

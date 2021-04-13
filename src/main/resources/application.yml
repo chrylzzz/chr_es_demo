@@ -1,0 +1,45 @@
+server:
+  port: 8081
+# 扫描 mapper.xml
+mybatis:
+  mapper-locations:
+    - classpath:dao/*.xml
+    - classpath:mappers/*.xml
+    - classpath*:com/**/mapper/*.xml
+
+logging:
+  level:
+    root: info
+    com.chryl: debug
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/chryl?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: chryl
+    druid:
+      initial-size: 5 #连接池初始化大小
+      min-idle: 10 #最小空闲连接数
+      max-active: 20 #最大连接数
+      web-stat-filter:
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*" #不统计这些请求数据
+      stat-view-servlet: #访问监控网页的登录用户名和密码
+        login-username: druid
+        login-password: druid
+  data:
+    elasticsearch:
+      repositories:
+        enabled: true
+        #初步判定，应该是spring-boot-starter-data-elasticsearch与Elasticsearch 7.x版本不兼容造成的以下错误
+#     "None of the configured nodes are available: [{#transport#-1}{4km6HIImTVmSfEEDqSHiCw}{192.168.228.128}{192.168.228.128:9300}]",
+      #org.elasticsearch.client.transport.NoNodeAvailableException: None of the configured nodes are available: [{#transport#-1}{Y3El8MDDRJqopm4ZBzqnqg}{192.168.228.128}{192.168.228.128:9200}]
+      #es与java交互的默认端口号是9300，与http交互的端口号是9200，两者不要搞错了
+      cluster-nodes: 127.0.0.1:9300
+#      cluster-name: elasticsearch # es集群的名称
+
+###7.x配置,7.x改动较大,只能使用ElasticsearchRestTemplate , 不能用ElasticsearchTemplate
+#  elasticsearch:
+#    rest:
+#      uris: http://localhost:9200
+#      username:
+#      password:
