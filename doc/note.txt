@@ -7,22 +7,32 @@ matchQuery
 termQuery
 wildcardQuery
 
-################  问题  ##############
+########################  问题  ########################
 数字类型如何模糊查询
 日期类型如何查询
 分词查询为什么只能查单个字
 不分词查询为什么也只能查单个字
 es6.x,安装ik分词之后,嵌套等数据类型报错:ES can‘t be changed from nested to non-nested , 原因是
 es7.x和6.x完全不同: 7.x 连接不上es :报错"None of the configured nodes are available: [{#transport#-1}{hE3Pawq-TMSgwtkFYGgunA}{127.0.0.1}{127.0.0.1:9300}]",
+company下有emp ,empId为嵌套属性内的属性,如何查询嵌套内的属性:由于嵌套对象 被索引在独立隐藏的文档中，我们无法直接查询它们。 相应地，我们必须使用 nested 查询 去获取它们
 
-########## es 6.x 安装ik:一系列操作问题:
+########################## es 6.x 安装ik:一系列操作问题:###############################################################
 1.未安装ik分词会报错:failed to load elasticsearch nodes : org.elasticsearch.index.mapper.MapperParsingException: analyzer [ik_max_word] not found for field [companyName]
+
 2.安装ik分词后启动报错:object mapping [chrEmpList] can't be changed from non-nested to nested
 Caused by: java.lang.IllegalArgumentException: object mapping [chrEmpList] can't be changed from non-nested to nested
 解决:使用elasticsearch-head删除所有索引,重新导入数据,即可.
-3.安装 elasticsearch-head:如果跨域则,设置config下的elasticsearch.yml配置
+
+3.安装 elasticsearch-head:如果跨域则,设置config下的elasticsearch.yml配置:
 http.cors.enabled: true
 http.cors.allow-origin: "*"
+4.下载,安装,启动 es-head:
+https://github.com/mobz/elasticsearch-head
+git clone git://github.com/mobz/elasticsearch-head.git
+cd elasticsearch-head
+npm install
+npm run start
+open http://localhost:9100/
 
 ############    分词器插件安装    ######################################################################################
 ik_max_word 和 ik_smart 什么区别?

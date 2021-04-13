@@ -5,11 +5,11 @@ import com.chryl.mapper.ChrCompanyEmpMapper;
 import com.chryl.repository.ChrCompanyEmpRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.lucene.search.function.FunctionScoreQuery;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -81,7 +81,8 @@ public class ChrCompanyEmpService {
 
 
     /**
-     * 查询
+     * 查询,
+     * 包括嵌套属性查询;
      *
      * @param keyword
      * @param companyId
@@ -110,7 +111,21 @@ public class ChrCompanyEmpService {
                 boolQueryBuilder.must(QueryBuilders.termQuery("companyId", companyId));
             }
             if (empId != null) {
-                boolQueryBuilder.must(QueryBuilders.termQuery("empId", empId));
+                /**
+                 * empId为嵌套内对象的属性,不与外属性查询方法查询
+                 */
+                //方法1,直接构建query
+//                boolQueryBuilder.must(QueryBuilders.termQuery("empId", empId));
+                boolQueryBuilder.must(QueryBuilders.nestedQuery(
+                        "chrEmpList",//嵌套变量名名
+                        new TermQueryBuilder("chrEmpList.empId", empId),//查询字段,值
+                        ScoreMode.None));
+
+                //方法2,对象构建query
+//                NestedQueryBuilder nestedQuery = new NestedQueryBuilder("chrEmpList",//nested嵌套的变量名
+//                        new TermQueryBuilder("chrEmpList.empId", empId),//查询的属性字段,值
+//                        ScoreMode.None);
+//                boolQueryBuilder.must(nestedQuery);
             }
             //模糊查询:wildcardQuery
 //            boolQueryBuilder.must(QueryBuilders.wildcardQuery("companyName", "*oo*"));
@@ -135,11 +150,14 @@ public class ChrCompanyEmpService {
             //分词查询
             List<FunctionScoreQueryBuilder.FilterFunctionBuilder> filterFunctionBuilders = new ArrayList<>();
             filterFunctionBuilders.add(new FunctionScoreQueryBuilder.FilterFunctionBuilder(
-                    QueryBuilders.matchQuery("companyName", keyword),//分词查询
+//                    QueryBuilders.matchQuery("companyName", keyword),//分词查询
+                    QueryBuilders.wildcardQuery("companyName", keyword + "*"),//全英文,不分词查询,模糊查询
                     ScoreFunctionBuilders.weightFactorFunction(10)////设置权重
             ));
+            //嵌套
             filterFunctionBuilders.add(new FunctionScoreQueryBuilder.FilterFunctionBuilder(
-                    QueryBuilders.matchQuery("empName", keyword),
+                    QueryBuilders.nestedQuery("chrEmpList",
+                            new MatchQueryBuilder("chrEmpList.empName", keyword), ScoreMode.None),
                     ScoreFunctionBuilders.weightFactorFunction(5)
             ));
             filterFunctionBuilders.add(new FunctionScoreQueryBuilder.FilterFunctionBuilder(
@@ -171,6 +189,7 @@ public class ChrCompanyEmpService {
 
 
          */
+        //排序
         if (sort == 1) {//long
             nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort("companyId").order(SortOrder.DESC));
         } else if (sort == 2) {//text不默认不开启排序
@@ -246,11 +265,17 @@ public class ChrCompanyEmpService {
 //                .withQuery(QueryBuilders.wildcardQuery("companyName", keyword + "*"))
                 //范围查询
 //                .withQuery(QueryBuilders.rangeQuery("companyId").lt(keyword))
+                //嵌套内属性查询
+                .withQuery(QueryBuilders.nestedQuery("chrEmpList",
+                        QueryBuilders.boolQuery()//多条件查询
+                                .should(QueryBuilders.matchQuery("chrEmpList.empId", keyword))//嵌套属性,值
+                                .should(QueryBuilders.matchQuery("chrEmpList.empCode", keyword))
+                        , ScoreMode.None)
+                )
+
 
                 //多条件查询
                 .withQuery(boolQueryBuilder)
-
-
                 //还可以设置分页信息
                 .withPageable(PageRequest.of(page, size))
                 //创建SearchQuery对象
@@ -260,20 +285,37 @@ public class ChrCompanyEmpService {
     }
 
     //多条件模糊查询
-    public List<ChrCompanyEmp> searchChinesQuery(Integer companyCode, String companyName, String companyChinese, String companyDescription, Integer page, Integer size) {
+    public List<ChrCompanyEmp> searchChinesQuery(Integer companyCode, Long companyId, Long empId, Integer empCode, String companyName, String companyChinese, String companyDescription, Integer page, Integer size) {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-        if (companyCode != null) {//数值查询未解决
-//            boolQueryBuilder.should(QueryBuilders.wildcardQuery("companyCode", companyCode + "*"));
+        if (companyCode != null) {
+            /**
+             * 数值查询未解决:
+             * 据我测试,数值暂时测试不能用模糊查询等,现在只能进行精确匹配
+             */
+//            boolQueryBuilder.should(QueryBuilders.wildcardQuery("companyCode", companyCode + "*"));//模糊查询不支持数值
+            boolQueryBuilder.should(QueryBuilders.termQuery("companyCode", companyCode));//精确匹配
         }
-        if (companyName != null) {
+        if (companyId != null) {//数值精确查询
+            boolQueryBuilder.should(QueryBuilders.termQuery("companyId", companyId));
+        }
+        if (empId != null) {//数值精确查询,嵌套属性查询
+            boolQueryBuilder.should(QueryBuilders.nestedQuery("chrEmpList", QueryBuilders.termQuery("chrEmpList.empId", empId), ScoreMode.None));
+        }
+        if (empCode != null) {//数值精确查询,嵌套属性查询
+            boolQueryBuilder.should(QueryBuilders.nestedQuery("chrEmpList", QueryBuilders.termQuery("chrEmpList.empCode", empCode), ScoreMode.None));
+        }
+
+
+        if (companyName != null) {//模糊查询
             boolQueryBuilder.should(QueryBuilders.wildcardQuery("companyName", companyName + "*"));
         }
-        if (companyChinese != null) {
+        if (companyChinese != null) {//模糊查询
             boolQueryBuilder.should(QueryBuilders.wildcardQuery("companyChinese", companyChinese + "*"));
         }
-        if (companyDescription != null) {
+        if (companyDescription != null) {//模糊查询
             boolQueryBuilder.should(QueryBuilders.wildcardQuery("companyDescription", companyDescription + "*"));
         }
+
 
         SearchQuery searchQuery = new NativeSearchQueryBuilder()
                 //多条件查询

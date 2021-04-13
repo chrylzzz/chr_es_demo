@@ -43,7 +43,7 @@ public class ChrCompanyEmpController {
     @GetMapping("/searchA")
     public CommonResult<CommonPage<ChrCompanyEmp>> search(@RequestParam(required = false) String keyword,
                                                           @RequestParam(required = false) Long companyId,
-                                                          @RequestParam(required = false) Long empId,
+                                                          @RequestParam(required = false) Long empId,//empId为嵌套属性内的属性,暂时不知道如何查询
                                                           @RequestParam(required = false, defaultValue = "0") Integer page,
                                                           @RequestParam(required = false, defaultValue = "5") Integer size,
                                                           @RequestParam(required = false, defaultValue = "0") Integer sort) {
@@ -99,12 +99,16 @@ public class ChrCompanyEmpController {
     @GetMapping("/searchE1")
     public CommonResult<CommonPage<ChrCompanyEmp>> searchChinesQuery(
             @RequestParam(required = false) Integer companyCode,
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) Long empId,
+            @RequestParam(required = false) Integer empCode,
             @RequestParam(required = false) String companyName,
             @RequestParam(required = false) String companyChinese,
             @RequestParam(required = false) String companyDescription,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "5") Integer size) {
-        List<ChrCompanyEmp> chrCompanyEmpPage = chrCompanyEmpService.searchChinesQuery(companyCode, companyName, companyChinese, companyDescription, page, size);
+        List<ChrCompanyEmp> chrCompanyEmpPage = chrCompanyEmpService.searchChinesQuery
+                (companyCode, companyId, empId, empCode, companyName, companyChinese, companyDescription, page, size);
         return CommonResult.success(CommonPage.restPage(chrCompanyEmpPage));
     }
 

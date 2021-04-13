@@ -22,7 +22,13 @@ public class ChrCompany implements Serializable {
     @Id
     private Long companyId;
 
-    @Field(analyzer = "ik_max_word", type = FieldType.Text)
+    /**
+     * 注意:
+     * 中文分词,用在全部中文字段最好,
+     * 如果是全英文字段,那么不要用分词了
+     */
+//    @Field(analyzer = "ik_max_word", type = FieldType.Text)
+    @Field(type = FieldType.Keyword)//不会进行分词建立索引的类型
     private String companyName;
 
     @Field(type = FieldType.Integer)
