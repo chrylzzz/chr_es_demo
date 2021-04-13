@@ -157,7 +157,7 @@ public class ChrCompanyEmpService {
             filterFunctionBuilders.add(new FunctionScoreQueryBuilder.FilterFunctionBuilder(
 //                    QueryBuilders.matchQuery("companyName", keyword),//分词查询
 //                    QueryBuilders.wildcardQuery("companyName", keyword + "*"),//全英文,不分词查询,模糊查询,类似于like查询
-                    QueryBuilders.fuzzyQuery("companyName", keyword),//全英文,不分词查询,模糊查询,类似于包含查询
+                    QueryBuilders.fuzzyQuery("companyName", keyword),//全英文,不分词查询,模糊查询,类似于包含查询contains
                     ScoreFunctionBuilders.weightFactorFunction(10)////设置权重
             ));
             //嵌套
