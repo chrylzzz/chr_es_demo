@@ -146,6 +146,8 @@ public class ChrCompanyEmpService {
              builder.must(new QueryStringQueryBuilder("man").field("springdemo"));
 
              matchQuery 分词查询，--这里可以设置分词器,采用默认的分词器
+
+             wildcardQuery 模糊查询
              */
             //分词查询
             List<FunctionScoreQueryBuilder.FilterFunctionBuilder> filterFunctionBuilders = new ArrayList<>();
