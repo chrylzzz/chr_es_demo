@@ -1,5 +1,6 @@
 package com.chryl.service;
 
+import com.alibaba.fastjson.JSON;
 import com.chryl.entity.ChrCompanyEmp;
 import com.chryl.mapper.ChrCompanyEmpMapper;
 import com.chryl.repository.ChrCompanyEmpRepository;
@@ -7,11 +8,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.lucene.search.function.FunctionScoreQuery;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregator;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.avg.AvgAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.max.MaxAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.min.MinAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.sum.SumAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.valuecount.ValueCountAggregationBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +32,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.aggregation.AggregatedPage;
 import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.stereotype.Service;
 
@@ -66,17 +80,6 @@ public class ChrCompanyEmpService {
             iterator.next();
         }
         return result;
-    }
-
-
-    /**
-     * 查询indexName是否存在
-     *
-     * @param indexName
-     * @return
-     */
-    public Boolean indexExists(String indexName) {
-        return elasticsearchTemplate.indexExists(indexName);
     }
 
 
@@ -345,6 +348,414 @@ public class ChrCompanyEmpService {
         criteria.and("empId");
         CriteriaQuery criteriaQuery = new CriteriaQuery(criteria);
         return elasticsearchTemplate.count(criteriaQuery);
+    }
+
+
+    /**
+     * 判断索引是否存在
+     *
+     * @return boolean
+     */
+    public boolean indexExists() {
+        return elasticsearchTemplate.indexExists(ChrCompanyEmp.class);
+    }
+
+    /**
+     * 判断索引是否存在
+     *
+     * @param indexName 索引名称
+     * @return boolean
+     */
+    public boolean indexExists(String indexName) {
+        return elasticsearchTemplate.indexExists(indexName);
+    }
+
+    /**
+     * 创建索引（推荐使用：因为Java对象已经通过注解描述了Setting和Mapping）
+     *
+     * @return boolean
+     */
+    public boolean indexCreate() {
+        return elasticsearchTemplate.createIndex(ChrCompanyEmp.class);
+    }
+
+    /**
+     * 创建索引
+     *
+     * @param indexName 索引名称
+     * @return boolean
+     */
+    public boolean indexCreate(String indexName) {
+        return elasticsearchTemplate.createIndex(indexName);
+    }
+
+    /**
+     * 索引删除
+     *
+     * @param indexName 索引名称
+     * @return boolean
+     */
+    public boolean indexDelete(String indexName) {
+        return elasticsearchTemplate.deleteIndex(indexName);
+    }
+
+    /**
+     * 新增数据
+     *
+     * @param bean 数据对象
+     */
+    public void save(ChrCompanyEmp bean) {
+        chrCompanyEmpRepository.save(bean);
+    }
+
+    /**
+     * 批量新增数据
+     *
+     * @param list 数据集合
+     */
+    public void saveAll(List<ChrCompanyEmp> list) {
+        chrCompanyEmpRepository.saveAll(list);
+    }
+
+    /**
+     * 修改数据
+     *
+     * @param indexName 索引名称
+     * @param type      索引类型
+     * @param bean      修改数据对象，ID不能为空
+     */
+    public void update(String indexName, String type, ChrCompanyEmp bean) {
+        UpdateRequest updateRequest = new UpdateRequest();
+        updateRequest.retryOnConflict(1);//冲突重试
+//        updateRequest.doc(JSONUtil.toJsonStr(bean), XContentType.JSON);
+        updateRequest.doc(JSON.toJSONString(bean), XContentType.JSON);
+//        updateRequest.routing(bean.getId());//默认是_id来路由的，用来路由到不同的shard，会对这个值做hash，然后映射到shard。所以分片
+        updateRequest.routing(String.valueOf(bean.getCompanyId()));//默认是_id来路由的，用来路由到不同的shard，会对这个值做hash，然后映射到shard。所以分片
+//        UpdateQuery query = new UpdateQueryBuilder().withIndexName(indexName).withType(type).withId(bean.getId())
+        UpdateQuery query = new UpdateQueryBuilder().withIndexName(indexName).withType(type).withId(String.valueOf(bean.getCompanyId()))
+                .withDoUpsert(true)//不加默认false。true表示更新时不存在就插入
+                .withClass(ChrCompanyEmp.class).withUpdateRequest(updateRequest).build();
+        UpdateResponse updateResponse = elasticsearchTemplate.update(query);
+    }
+
+    /**
+     * 根据ID，删除数据
+     *
+     * @param id 数据ID
+     */
+//    public void deleteById(String id) {
+    public void deleteById(Long id) {
+        chrCompanyEmpRepository.deleteById(id);
+    }
+
+    /**
+     * 根据对象删除数据，主键ID不能为空
+     *
+     * @param bean 对象
+     */
+    public void deleteByBean(ChrCompanyEmp bean) {
+        chrCompanyEmpRepository.delete(bean);
+    }
+
+    /**
+     * 根据对象集合，批量删除
+     *
+     * @param beanList 对象集合
+     */
+    public void deleteAll(List<ChrCompanyEmp> beanList) {
+        chrCompanyEmpRepository.deleteAll(beanList);
+    }
+
+    /**
+     * 删除所有
+     */
+    public void deleteAll() {
+        chrCompanyEmpRepository.deleteAll();
+    }
+
+    /**
+     * 根据条件，自定义删除（在setQuery中的条件，可以根据需求自由拼接各种参数，与查询方法一样）
+     *
+     * @param indexName 索引
+     * @param type      索引类型
+     */
+    public void delete(String indexName, String type) {
+        DeleteQuery deleteQuery = new DeleteQuery();
+        deleteQuery.setIndex(indexName);
+        deleteQuery.setType(type);//建index没配置就是类名全小写
+        deleteQuery.setQuery(new BoolQueryBuilder().must(QueryBuilders.termQuery("mobile", "13526568454")));
+        elasticsearchTemplate.delete(deleteQuery);
+    }
+
+    /**
+     * 批量新增
+     *
+     * @param indexName 索引名称
+     * @param type      索引类型
+     * @param beanList  新增对象集合
+     */
+    public void batchSave(String indexName, String type, List<ChrCompanyEmp> beanList) {
+        List<IndexQuery> queries = new ArrayList<>();
+        IndexQuery indexQuery;
+        int counter = 0;
+        for (ChrCompanyEmp item : beanList) {
+            indexQuery = new IndexQuery();
+//            indexQuery.setId(item.getId());
+            indexQuery.setId(String.valueOf(item.getCompanyId()));
+//            indexQuery.setSource(JSONUtil.toJsonStr(item));
+            indexQuery.setSource(JSON.toJSONString(item));
+            indexQuery.setIndexName(indexName);
+            indexQuery.setType(type);
+            queries.add(indexQuery);
+            //分批提交索引
+            if (counter != 0 && counter % 1000 == 0) {
+                elasticsearchTemplate.bulkIndex(queries);
+                queries.clear();
+                System.out.println("bulkIndex counter : " + counter);
+            }
+            counter++;
+        }
+        //不足批的索引最后不要忘记提交
+        if (queries.size() > 0) {
+            elasticsearchTemplate.bulkIndex(queries);
+        }
+        elasticsearchTemplate.refresh(indexName);
+    }
+
+    /**
+     * 批量修改
+     *
+     * @param indexName 索引名称
+     * @param type      索引类型
+     * @param beanList  修改对象集合
+     */
+    public void batchUpdate(String indexName, String type, List<ChrCompanyEmp> beanList) {
+        List<UpdateQuery> queries = new ArrayList<>();
+        UpdateQuery updateQuery;
+        UpdateRequest updateRequest;
+        int counter = 0;
+        for (ChrCompanyEmp item : beanList) {
+            updateRequest = new UpdateRequest();
+            updateRequest.retryOnConflict(1);//冲突重试
+            updateRequest.doc(item);
+//            updateRequest.routing(item.getId());
+            updateRequest.routing(String.valueOf(item.getCompanyId()));
+
+            updateQuery = new UpdateQuery();
+//            updateQuery.setId(item.getId());
+            updateQuery.setId(String.valueOf(item.getCompanyId()));
+            updateQuery.setDoUpsert(true);
+            updateQuery.setUpdateRequest(updateRequest);
+            updateQuery.setIndexName(indexName);
+            updateQuery.setType(type);
+            queries.add(updateQuery);
+            //分批提交索引
+            if (counter != 0 && counter % 1000 == 0) {
+                elasticsearchTemplate.bulkUpdate(queries);
+                queries.clear();
+                System.out.println("bulkIndex counter : " + counter);
+            }
+            counter++;
+        }
+        //不足批的索引最后不要忘记提交
+        if (queries.size() > 0) {
+            elasticsearchTemplate.bulkUpdate(queries);
+        }
+        elasticsearchTemplate.refresh(indexName);
+    }
+
+    /**
+     * 数据查询，返回List
+     *
+     * @param field 查询字段
+     * @param value 查询值
+     * @return List<ChrCompanyEmp>
+     */
+    public List<ChrCompanyEmp> queryMatchList(String field, String value) {
+        MatchQueryBuilder builder = QueryBuilders.matchQuery(field, value);
+        SearchQuery searchQuery = new NativeSearchQuery(builder);
+        return elasticsearchTemplate.queryForList(searchQuery, ChrCompanyEmp.class);
+    }
+
+    /**
+     * 数据查询，返回Page
+     *
+     * @param field 查询字段
+     * @param value 查询值
+     * @return AggregatedPage<ChrCompanyEmp>
+     */
+//    public AggregatedPage<ChrCompanyEmp> queryMatchPage(String field, String value) {
+//        MatchQueryBuilder builder = QueryBuilders.matchQuery(field, value);
+//        SearchQuery searchQuery = new NativeSearchQuery(builder).setPageable(PageRequest.of(0, 100));
+//        AggregatedPage<ChrCompanyEmp> page = elasticsearchTemplate.queryForPage(searchQuery, ChrCompanyEmp.class);
+//
+//        long totalElements = page.getTotalElements(); // 总记录数
+//        int totalPages = page.getTotalPages();  // 总页数
+//        int pageNumber = page.getPageable().getPageNumber(); // 当前页号
+//        List<ChrCompanyEmp> beanList = page.toList();  // 当前页数据集
+//        Set<ChrCompanyEmp> beanSet = page.toSet();  // 当前页数据集
+//        return page;
+//    }
+
+
+    //    QueryBuilders对象是用于创建查询方法的，支持多种查询类型，常用的查询API包括以下方法：
+
+    /**
+     * 关键字匹配查询
+     *
+     * @param name  字段的名称
+     * @param value 查询值
+     */
+    public static TermQueryBuilder termQuery(String name, String value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    public static TermQueryBuilder termQuery(String name, int value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    public static TermQueryBuilder termQuery(String name, long value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    public static TermQueryBuilder termQuery(String name, float value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    public static TermQueryBuilder termQuery(String name, double value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    public static TermQueryBuilder termQuery(String name, boolean value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    public static TermQueryBuilder termQuery(String name, Object value) {
+        return new TermQueryBuilder(name, value);
+    }
+
+    /**
+     * 关键字查询，同时匹配多个关键字
+     *
+     * @param name   字段名称
+     * @param values 查询值
+     */
+    public static TermsQueryBuilder termsQuery(String name, String... values) {
+        return new TermsQueryBuilder(name, values);
+    }
+
+    /**
+     * 创建一个匹配多个关键字的查询，返回boolean
+     *
+     * @param fieldNames 字段名称
+     * @param text       查询值
+     */
+    public static MultiMatchQueryBuilder multiMatchQuery(Object text, String... fieldNames) {
+        return new MultiMatchQueryBuilder(text, fieldNames); // BOOLEAN is the default
+    }
+
+    /**
+     * 关键字，精确匹配
+     *
+     * @param name 字段名称
+     * @param text 查询值
+     */
+    public static MatchQueryBuilder matchQuery(String name, Object text) {
+        return new MatchQueryBuilder(name, text);
+    }
+
+    /**
+     * 关键字范围查询（后面跟范围条件）
+     *
+     * @param name 字段名称
+     */
+    public static RangeQueryBuilder rangeQuery(String name) {
+        return new RangeQueryBuilder(name);
+    }
+
+    /**
+     * 判断字段是否有值
+     *
+     * @param name 字段名称
+     */
+    public static ExistsQueryBuilder existsQuery(String name) {
+        return new ExistsQueryBuilder(name);
+    }
+
+    /**
+     * 模糊查询
+     *
+     * @param name  字段名称
+     * @param value 查询值
+     */
+    public static FuzzyQueryBuilder fuzzyQuery(String name, String value) {
+        return new FuzzyQueryBuilder(name, value);
+    }
+
+    /**
+     * 组合查询对象，可以同时引用上面的所有查询对象
+     */
+    public static BoolQueryBuilder boolQuery() {
+        return new BoolQueryBuilder();
+    }
+
+
+//    聚合查询　　AggregationBuilders对象是用于创建聚合方法的，支持多种查询类型，常用的查询API包括以下方法：
+
+    /**
+     * 根据字段聚合，统计该字段的每个值的数量
+     */
+    public static TermsAggregationBuilder terms(String name) {
+        return new TermsAggregationBuilder(name, null);
+    }
+
+    /**
+     * 统计操作的，过滤条件
+     */
+    public static FilterAggregationBuilder filter(String name, QueryBuilder filter) {
+        return new FilterAggregationBuilder(name, filter);
+    }
+
+    /**
+     * 设置多个过滤条件
+     */
+    public static FiltersAggregationBuilder filters(String name, FiltersAggregator.KeyedFilter... filters) {
+        return new FiltersAggregationBuilder(name, filters);
+    }
+
+    /**
+     * 统计该字段的数据总数
+     */
+    public static ValueCountAggregationBuilder count(String name) {
+        return new ValueCountAggregationBuilder(name, null);
+    }
+
+    /**
+     * 计算平均值
+     */
+    public static AvgAggregationBuilder avg(String name) {
+        return new AvgAggregationBuilder(name);
+    }
+
+    /**
+     * 计算最大值
+     */
+    public static MaxAggregationBuilder max(String name) {
+        return new MaxAggregationBuilder(name);
+    }
+
+    /**
+     * 计算最小值
+     */
+    public static MinAggregationBuilder min(String name) {
+        return new MinAggregationBuilder(name);
+    }
+
+    /**
+     * 计算总数
+     */
+    public static SumAggregationBuilder sum(String name) {
+        return new SumAggregationBuilder(name);
     }
 
 }

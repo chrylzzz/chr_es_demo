@@ -1,11 +1,8 @@
-分词查询:
-fuzzyQuery:
-matchQuery
 
-
-查询:
-termQuery
-wildcardQuery
+fuzzyQuery:(模糊查询)用在分词器
+matchQuery:分词查询
+termQuery:精确查询
+wildcardQuery:通配符查询
 
 ########################  问题  ########################
 数字类型如何模糊查询
