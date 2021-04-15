@@ -418,6 +418,15 @@ public class ChrCompanyEmpService {
     }
 
     /**
+     * 批量删除
+     *
+     * @param list
+     */
+    public void repoDeleteAll(List<ChrCompanyEmp> list) {
+        chrCompanyEmpRepository.deleteAll(list);
+    }
+
+    /**
      * 修改数据
      *
      * @param indexName 索引名称

@@ -3,11 +3,14 @@ package com.chryl.controller;
 import com.chryl.common.CommonPage;
 import com.chryl.common.CommonResult;
 import com.chryl.entity.ChrCompanyEmp;
+import com.chryl.entity.ChrEmp;
 import com.chryl.service.ChrCompanyEmpService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,6 +19,7 @@ import java.util.List;
  * @author Chr.yl
  */
 @RestController
+@Slf4j
 public class ChrCompanyEmpController {
 
     @Autowired
@@ -110,6 +114,56 @@ public class ChrCompanyEmpController {
         List<ChrCompanyEmp> chrCompanyEmpPage = chrCompanyEmpService.searchChinesQuery
                 (companyCode, companyId, empId, empCode, companyName, companyChinese, companyDescription, page, size);
         return CommonResult.success(CommonPage.restPage(chrCompanyEmpPage));
+    }
+
+
+    /**
+     * ES CRUD
+     */
+    @GetMapping("show")
+    public void show() {
+        log.info("索引存在 , {}", chrCompanyEmpService.indexExists());
+        log.info("索引存在 , {}", chrCompanyEmpService.indexExists("chr_company_emp"));
+//        log.info("删除索引 , {}", chrCompanyEmpService.indexDelete("chr_company_emp"));
+
+//        log.info("创建索引 , {}", chrCompanyEmpService.indexCreate());
+//        log.info("创建索引 , {}", chrCompanyEmpService.indexCreate("chr_company_emp"));
+
+
+        ChrCompanyEmp chrCompanyEmp = new ChrCompanyEmp();
+        chrCompanyEmp.setCompanyId(200199700L);
+        chrCompanyEmp.setCompanyCode(8901);
+        chrCompanyEmp.setCompanyChinese("nono mean");
+//        chrCompanyEmp.setCompanyChinese("测试update");
+        chrCompanyEmp.setCompanyName("nono mean");
+        chrCompanyEmp.setCompanyDescription("nono mean");
+        List<ChrEmp> list = new ArrayList<>();
+        ChrEmp chrEmp = new ChrEmp();
+        chrEmp.setEmpId(2389121313L);
+        chrEmp.setEmpName("zhousx");
+        chrEmp.setEmpRealName("周盛鑫");
+        list.add(chrEmp);
+        chrCompanyEmp.setChrEmpList(list);
+        List<ChrCompanyEmp> companyEmpList = new ArrayList<>();
+        companyEmpList.add(chrCompanyEmp);
+
+        //逐条插入
+        chrCompanyEmpService.save(chrCompanyEmp);
+        //逐条删除
+//        chrCompanyEmpService.deleteById(200199700L);
+//        chrCompanyEmpService.deleteByBean(chrCompanyEmp);
+
+        //批量删除
+//        chrCompanyEmpService.deleteAll(companyEmpList);
+//        chrCompanyEmpService.deleteAll();
+        //批量插入
+//        chrCompanyEmpService.saveAll(companyEmpList);
+        //逐条更新
+//        chrCompanyEmpService.update("chr_company_emp", "company_emp", chrCompanyEmp);
+
+        //批量更新
+        chrCompanyEmp.setCompanyChinese("测试update");
+        chrCompanyEmpService.batchUpdate("chr_company_emp", "company_emp", companyEmpList);
     }
 
 
